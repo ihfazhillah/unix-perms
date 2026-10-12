@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Izin File Unix</title>
+<meta name="description" content="Belajar izin file Unix: cheat sheet untuk dicetak dan game latihan harian.">
+<style>
+  :root{
+    --bg:#0e1116;--surface:#161b22;--surface-2:#1c232d;--fg:#e7ebf0;--muted:#97a2b0;
+    --border:#28313d;--accent:#4fb286;--phase:#d7a53b;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    --sans:"IBM Plex Sans",system-ui,-apple-system,sans-serif;color-scheme:dark;
+  }
+  @media (prefers-color-scheme:light){:root:not([data-theme="dark"]){
+    --bg:#f5f1e8;--surface:#fffdf8;--surface-2:#efe9db;--fg:#1d232b;--muted:#5c6472;
+    --border:#d8cfbd;--accent:#1d8a5f;--phase:#a9741a;color-scheme:light;}}
+  :root[data-theme="dark"]{--bg:#0e1116;--surface:#161b22;--surface-2:#1c232d;--fg:#e7ebf0;--muted:#97a2b0;
+    --border:#28313d;--accent:#4fb286;--phase:#d7a53b;color-scheme:dark;}
+  *{box-sizing:border-box;}
+  body{background:var(--bg);color:var(--fg);font-family:var(--sans);line-height:1.55;margin:0;}
+  .wrap{max-width:640px;margin:0 auto;padding:0 18px 70px;}
+  header{display:flex;justify-content:space-between;align-items:center;padding:0.7rem 0;border-bottom:1px solid var(--border);}
+  header .tag{font-family:var(--mono);font-size:0.78rem;letter-spacing:0.05em;color:var(--muted);}
+  header button{font-family:var(--mono);font-size:0.72rem;background:var(--surface);color:var(--fg);
+    border:1px solid var(--border);border-radius:16px;padding:0.3rem 0.7rem;cursor:pointer;}
+  h1{font-family:var(--mono);font-size:1.8rem;margin:1.6rem 0 0;letter-spacing:-0.01em;}
+  .lede{color:var(--muted);margin:0.4rem 0 0;max-width:52ch;}
+  code{font-family:var(--mono);background:var(--surface-2);padding:0.05em 0.3em;border-radius:4px;font-size:0.9em;}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:1.6rem;}
+  a.card{display:block;text-decoration:none;color:inherit;background:var(--surface);border:1px solid var(--border);
+    border-radius:14px;padding:1.1rem 1.1rem 1.2rem;transition:border-color .1s;}
+  a.card:hover{border-color:var(--accent);}
+  a.card .ic{font-size:1.7rem;}
+  a.card h2{font-family:var(--mono);font-size:1.1rem;margin:0.5rem 0 0.3rem;}
+  a.card p{font-size:0.86rem;color:var(--muted);margin:0;}
+  a.card .go{font-family:var(--mono);font-size:0.78rem;color:var(--accent);margin-top:0.7rem;display:inline-block;}
+  .foot{color:var(--muted);font-size:0.8rem;margin-top:2rem;}
+  @media (max-width:520px){.cards{grid-template-columns:1fr;}}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="tag">izin file unix</span>
+    <button id="themeBtn" type="button">◐ tema</button>
+  </header>
+
+  <h1>Izin File Unix</h1>
+  <p class="lede">Dua alat untuk menguasai <code>rwx</code>, oktal, bit spesial, dan membaca <code>ls -l</code>: satu cheat sheet untuk ditempel, satu game untuk latihan harian 10–15 menit sampai menempel.</p>
+
+  <div class="cards">
+    <a class="card" href="./cheatsheet.html">
+      <div class="ic">🛡️</div>
+      <h2>Cheat Sheet</h2>
+      <p>Anatomi mode, tabel 0–7, bit spesial, file vs direktori, cara mengecek. Dioptimalkan untuk dicetak A4.</p>
+      <span class="go">Buka &amp; cetak →</span>
+    </a>
+    <a class="card" href="./game.html">
+      <div class="ic">🎮</div>
+      <h2>Perm Trainer</h2>
+      <p>Tujuh mode latihan, penjelasan tiap jawaban, drill harian bertimer dengan pelacak pekan.</p>
+      <span class="go">Mulai latihan →</span>
+    </a>
+  </div>
+
+  <p class="foot">Least privilege: matikan tiap saklar yang tidak wajib menyala. Satu bit keliru menyala = satu celah.</p>
+</div>
+<script>
+  (function(){var r=document.documentElement;
+    function g(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+    function s(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+    if(g("pt-theme"))r.setAttribute("data-theme",g("pt-theme"));
+    document.getElementById("themeBtn").onclick=function(){var c=r.getAttribute("data-theme");
+      var d=c?c==="dark":matchMedia("(prefers-color-scheme: dark)").matches;var n=d?"light":"dark";
+      r.setAttribute("data-theme",n);s("pt-theme",n);};})();
+</script>
+</body>
+</html>

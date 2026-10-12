@@ -1,0 +1,536 @@
+<title>Perm Trainer</title>
+<meta name="description" content="Game interaktif untuk memahami izin file Unix: oktal, rwx, membaca ls -l, dan mengecek akses, dalam berbagai mode.">
+<style>
+  :root {
+    --bg:#0e1116; --surface:#161b22; --surface-2:#1c232d; --fg:#e7ebf0; --muted:#97a2b0;
+    --border:#28313d; --accent:#4fb286; --phase:#d7a53b; --danger:#e5675c; --safe:#4fb286;
+    --code-bg:#0a0e13; --code-fg:#d6deeb;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    --sans:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+    color-scheme:dark;
+  }
+  @media (prefers-color-scheme:light){ :root:not([data-theme="dark"]){
+    --bg:#f5f1e8; --surface:#fffdf8; --surface-2:#efe9db; --fg:#1d232b; --muted:#5c6472;
+    --border:#d8cfbd; --accent:#1d8a5f; --phase:#a9741a; --danger:#bf3b31; --safe:#1d8a5f;
+    --code-bg:#171c24; --code-fg:#d6deeb; color-scheme:light; } }
+  :root[data-theme="dark"]{ --bg:#0e1116; --surface:#161b22; --surface-2:#1c232d; --fg:#e7ebf0; --muted:#97a2b0;
+    --border:#28313d; --accent:#4fb286; --phase:#d7a53b; --danger:#e5675c; --safe:#4fb286;
+    --code-bg:#0a0e13; --code-fg:#d6deeb; color-scheme:dark; }
+  *{box-sizing:border-box;}
+  body{background:var(--bg);color:var(--fg);font-family:var(--sans);line-height:1.5;margin:0;}
+  .wrap{max-width:620px;margin:0 auto;padding:0 16px 60px;}
+  a{color:var(--accent);}
+  code{font-family:var(--mono);background:var(--surface-2);padding:0.05em 0.3em;border-radius:4px;font-size:0.9em;}
+
+  header.bar{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--border);
+    display:flex;align-items:center;justify-content:space-between;gap:0.6rem;padding:0.6rem 0;flex-wrap:wrap;}
+  .bar .title{font-family:var(--mono);font-size:0.82rem;letter-spacing:0.05em;color:var(--muted);}
+  .bar .stats{display:flex;gap:0.5rem;align-items:center;justify-content:flex-end;flex-wrap:wrap;font-family:var(--mono);font-size:0.76rem;}
+  .stat{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:0.2rem 0.6rem;}
+  .stat b{color:var(--accent);}
+  .bar button{font-family:var(--mono);font-size:0.72rem;background:var(--surface);color:var(--fg);
+    border:1px solid var(--border);border-radius:16px;padding:0.3rem 0.7rem;cursor:pointer;}
+  .navlink{font-family:var(--mono);font-size:0.72rem;background:var(--surface);color:var(--fg);text-decoration:none;
+    border:1px solid var(--border);border-radius:16px;padding:0.3rem 0.7rem;}
+  .navlink:hover{border-color:var(--accent);color:var(--accent);}
+  .muted{color:var(--muted);}
+
+  .daily-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:0.9rem 1rem;margin-top:1rem;}
+  .daily-top{display:flex;justify-content:space-between;gap:0.6rem;align-items:center;flex-wrap:wrap;}
+  .weekdots{display:flex;gap:0.3rem;}
+  .wd{width:1.9rem;height:2.2rem;border:1px solid var(--border);border-radius:7px;display:grid;place-content:center;
+    font-family:var(--mono);font-size:0.62rem;color:var(--muted);background:var(--code-bg);}
+  .wd.done{background:var(--accent);color:var(--bg);border-color:var(--accent);font-weight:600;}
+  .wd.today{outline:2px solid var(--phase);outline-offset:1px;}
+  .daily-row{display:flex;gap:0.7rem;align-items:center;flex-wrap:wrap;margin-top:0.7rem;}
+  .daily-row label{font-family:var(--mono);font-size:0.78rem;color:var(--muted);}
+  .daily-row select{font-family:var(--mono);background:var(--code-bg);color:var(--fg);border:1px solid var(--border);border-radius:7px;padding:0.3rem 0.4rem;}
+  .daily-note{font-size:0.8rem;margin-top:0.5rem;}
+  #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--accent);color:#06130d;
+    font-family:var(--mono);font-size:0.82rem;font-weight:600;padding:0.6rem 1rem;border-radius:20px;opacity:0;
+    transition:opacity .3s;pointer-events:none;z-index:20;max-width:90vw;text-align:center;}
+  #toast.show{opacity:1;}
+
+  .hero{padding:1.4rem 0 0.4rem;}
+  h1{font-family:var(--mono);font-size:1.5rem;margin:0;letter-spacing:-0.01em;}
+  .lede{color:var(--muted);margin:0.3rem 0 0;}
+
+  .menu{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:1rem;}
+  .modecard{text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:12px;
+    padding:0.85rem 0.9rem;cursor:pointer;color:inherit;font:inherit;}
+  .modecard:hover{border-color:var(--accent);}
+  .modecard .mc-ic{font-size:1.3rem;}
+  .modecard .mc-nm{font-family:var(--mono);font-weight:600;margin:0.25rem 0 0.1rem;}
+  .modecard .mc-ds{font-size:0.8rem;color:var(--muted);line-height:1.4;}
+  .modecard.full{grid-column:1/-1;}
+
+  .stage{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.1rem 1rem;margin-top:1rem;}
+  .qkind{font-family:var(--mono);font-size:0.66rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--phase);margin:0 0 0.5rem;}
+  .qprompt{font-size:1.02rem;margin:0 0 0.9rem;}
+  .qprompt b{color:var(--accent);}
+  .big-oct{font-family:var(--mono);font-size:2.6rem;font-weight:600;color:var(--accent);text-align:center;margin:0.3rem 0 0.8rem;letter-spacing:0.08em;}
+  .lsline{font-family:var(--mono);font-size:1rem;background:var(--code-bg);color:var(--code-fg);border:1px solid var(--border);
+    border-radius:8px;padding:0.6rem 0.75rem;margin:0.4rem 0 0.9rem;overflow-x:auto;white-space:pre;}
+
+  .switches{display:flex;flex-direction:column;gap:0.4rem;margin:0.3rem 0;}
+  .swrow{display:flex;align-items:center;gap:0.4rem;}
+  .swname{font-family:var(--mono);font-size:0.72rem;color:var(--muted);width:4.4rem;text-align:right;text-transform:uppercase;letter-spacing:0.04em;}
+  .swcell{width:3rem;height:2.4rem;border:1px solid var(--border);border-radius:7px;background:var(--code-bg);color:var(--muted);
+    font-family:var(--mono);font-size:0.95rem;cursor:pointer;transition:all .08s;}
+  .swcell.on{background:var(--accent);color:var(--bg);border-color:var(--accent);font-weight:600;}
+  .swrow.sp .swcell.on{background:var(--phase);border-color:var(--phase);}
+  .octline{font-family:var(--mono);font-size:1.5rem;color:var(--fg);text-align:center;margin-top:0.5rem;}
+  .octline span{color:var(--accent);font-weight:600;}
+
+  .choices{display:flex;flex-direction:column;gap:0.5rem;margin:0.3rem 0;}
+  .choices.row{flex-direction:row;}
+  .choices.row .choice{flex:1;}
+  .choice{text-align:left;font:inherit;background:var(--code-bg);color:var(--fg);border:1px solid var(--border);
+    border-radius:9px;padding:0.6rem 0.8rem;cursor:pointer;}
+  .choices.mono .choice{font-family:var(--mono);font-size:0.9rem;white-space:pre;overflow-x:auto;}
+  .choices.row .choice{text-align:center;font-weight:600;}
+  .choice:hover{border-color:var(--accent);}
+  .choice.sel{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);}
+  .choice.right{border-color:var(--safe);background:color-mix(in srgb,var(--safe) 16%,var(--code-bg));}
+  .choice.wrong{border-color:var(--danger);background:color-mix(in srgb,var(--danger) 16%,var(--code-bg));}
+  .ti{width:100%;font-family:var(--mono);font-size:1rem;background:var(--code-bg);color:var(--code-fg);
+    border:1px solid var(--border);border-radius:9px;padding:0.6rem 0.75rem;}
+  .ti:focus{outline:2px solid var(--accent);outline-offset:1px;}
+  .ti:disabled{opacity:0.7;}
+
+  .controls{display:flex;gap:0.6rem;margin-top:1rem;}
+  .btn{font-family:var(--mono);font-size:0.85rem;border:0;border-radius:22px;padding:0.55rem 1.3rem;cursor:pointer;font-weight:600;}
+  .btn.primary{background:var(--accent);color:#06130d;}
+  .btn.ghost{background:var(--surface-2);color:var(--fg);border:1px solid var(--border);font-weight:400;}
+
+  .feedback{margin-top:1rem;border-radius:10px;padding:0.75rem 0.9rem;border:1px solid var(--border);background:var(--surface-2);}
+  .feedback .verdict{font-family:var(--mono);font-weight:600;}
+  .feedback.ok{border-left:3px solid var(--safe);} .feedback.ok .verdict{color:var(--safe);}
+  .feedback.bad{border-left:3px solid var(--danger);} .feedback.bad .verdict{color:var(--danger);}
+  .feedback .exp{font-size:0.9rem;color:var(--fg);margin-top:0.3rem;}
+  .feedback .exp code{font-size:0.86em;}
+  .hint{font-size:0.8rem;color:var(--muted);margin-top:0.5rem;}
+  @media (max-width:560px){ .big-oct{font-size:2.1rem;} .swcell{width:2.6rem;} .swname{width:3.6rem;} }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<div class="wrap">
+  <header class="bar">
+    <span class="title" id="barTitle">perm trainer</span>
+    <div class="stats">
+      <span class="stat">🔥 <b id="streak">0</b></span>
+      <span class="stat">terbaik <b id="best">0</b></span>
+      <span class="stat"><b id="correct">0</b>/<span id="total">0</span></span>
+      <span class="stat" id="timerChip" hidden>⏱ <b id="timeLeft">12:00</b></span>
+      <button id="stopDrillBtn" type="button" hidden>⏹ stop</button>
+      <a class="navlink" href="./index.html">beranda</a>
+      <a class="navlink" href="./cheatsheet.html">cheatsheet</a>
+      <button id="menuBtn" type="button" hidden>☰ menu</button>
+      <button id="themeBtn" type="button">◐</button>
+    </div>
+  </header>
+
+  <div id="home">
+    <section class="hero">
+      <h1>Perm Trainer</h1>
+      <p class="lede">Latihan izin file Unix dalam beberapa model. Tiap jawaban dijelaskan.</p>
+    </section>
+
+    <section class="daily-card" id="daily">
+      <div class="daily-top">
+        <div><b>Drill harian</b> <span class="muted" style="font-size:0.82rem">10–15 menit tiap hari, sampai menempel</span></div>
+        <div class="weekdots" id="weekdots"></div>
+      </div>
+      <div class="daily-row">
+        <span id="todayStatus"></span>
+        <label>durasi
+          <select id="dur"><option value="10">10</option><option value="12" selected>12</option><option value="15">15</option></select> mnt
+        </label>
+        <button class="btn primary" id="startDrill" type="button">▶ Mulai drill</button>
+      </div>
+      <div class="daily-note muted" id="streakNote"></div>
+    </section>
+
+    <p class="lede" style="margin-top:1.1rem">Atau pilih satu mode lepas:</p>
+    <div class="menu" id="menu"></div>
+  </div>
+
+  <div id="game" hidden>
+    <div class="stage" id="stage"></div>
+    <div class="controls">
+      <button class="btn primary" id="checkBtn" type="button">Periksa</button>
+      <button class="btn primary" id="nextBtn" type="button" hidden>Lanjut →</button>
+      <button class="btn ghost" id="skipBtn" type="button">Lewati</button>
+    </div>
+    <div class="feedback" id="feedback" hidden><span class="verdict" id="verdict"></span><div class="exp" id="exp"></div></div>
+    <p class="hint">Tip: <b>Enter</b> untuk periksa, lalu <b>Enter</b> lagi untuk lanjut.</p>
+  </div>
+
+  <div id="toast"></div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var root=document.documentElement;
+  function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+  function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+  if(lsGet("pt-theme")) root.setAttribute("data-theme",lsGet("pt-theme"));
+  document.getElementById("themeBtn").onclick=function(){
+    var cur=root.getAttribute("data-theme");
+    var dark=cur?cur==="dark":matchMedia("(prefers-color-scheme: dark)").matches;
+    var nx=dark?"light":"dark"; root.setAttribute("data-theme",nx); lsSet("pt-theme",nx);
+  };
+
+  // ---------- helpers ----------
+  function ri(n){return Math.floor(Math.random()*n);}
+  function pick(a){return a[ri(a.length)];}
+  function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=ri(i+1);var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+  function pad(s,n){s=String(s);while(s.length<n)s+=" ";return s;}
+  function rwx(d){return (d&4?"r":"-")+(d&2?"w":"-")+(d&1?"x":"-");}
+  function phrase(d){var p=[];if(d&4)p.push("baca");if(d&2)p.push("tulis");if(d&1)p.push("jalankan");return p.length?p.join("+"):"tidak ada";}
+  function octStr(m){return (m.special?String(m.special):"")+m.owner+m.group+m.other;}
+  function trip(d,sp,pos){
+    var r=d&4?"r":"-",w=d&2?"w":"-",x=d&1?"x":"-";
+    if(pos===0&&(sp&4)) x=(d&1)?"s":"S";
+    if(pos===1&&(sp&2)) x=(d&1)?"s":"S";
+    if(pos===2&&(sp&1)) x=(d&1)?"t":"T";
+    return r+w+x;
+  }
+  function symbolic(m,isDir){
+    return (isDir?"d":"-")+trip(m.owner,m.special,0)+trip(m.group,m.special,1)+trip(m.other,m.special,2);
+  }
+  var USERS=["tools","ads","anotherdev","sari","budi","www-data"];
+  var GROUPS=["tools","www-data","staff","ads","dev"];
+  var FILES=["app.js","config.php","index.html","report.pdf","notes.txt","data.csv","run.sh","cache.db"];
+  var DIRS=["static","media","logs","uploads","backups","public"];
+  function randMode(allowSpecial){
+    return {special:allowSpecial?pick([0,0,0,2,4,1]):0,owner:ri(8),group:ri(8),other:ri(8)};
+  }
+
+  // ---------- reusable: switches ----------
+  function buildSwitches(host,special){
+    host.innerHTML="";
+    var wrap=document.createElement("div"); wrap.className="switches";
+    var rows=special
+      ? [["spesial",["4","2","1"],true],["owner",["r","w","x"],false],["group",["r","w","x"],false],["other",["r","w","x"],false]]
+      : [["owner",["r","w","x"],false],["group",["r","w","x"],false],["other",["r","w","x"],false]];
+    rows.forEach(function(rw){
+      var row=document.createElement("div"); row.className="swrow"+(rw[2]?" sp":"");
+      var nm=document.createElement("div"); nm.className="swname"; nm.textContent=rw[0]; row.appendChild(nm);
+      rw[1].forEach(function(lbl){
+        var b=document.createElement("button"); b.type="button"; b.className="swcell"; b.textContent=lbl;
+        b.onclick=function(){ if(wrap.dataset.locked) return; b.classList.toggle("on"); upd(); };
+        row.appendChild(b);
+      });
+      wrap.appendChild(row);
+    });
+    host.appendChild(wrap);
+    var oct=document.createElement("div"); oct.className="octline"; host.appendChild(oct);
+    function val(row){var c=row.querySelectorAll(".swcell");return (c[0].classList.contains("on")?4:0)+(c[1].classList.contains("on")?2:0)+(c[2].classList.contains("on")?1:0);}
+    function read(){var r=wrap.querySelectorAll(".swrow");
+      if(special) return {special:val(r[0]),owner:val(r[1]),group:val(r[2]),other:val(r[3])};
+      return {special:0,owner:val(r[0]),group:val(r[1]),other:val(r[2])};
+    }
+    function upd(){var m=read();oct.innerHTML="= <span>"+octStr(m)+"</span>";}
+    upd();
+    return {read:read,lock:function(){wrap.dataset.locked="1";}};
+  }
+
+  // ---------- reusable: choices ----------
+  function buildChoices(host,items,opt){
+    opt=opt||{}; host.innerHTML="";
+    var wrap=document.createElement("div"); wrap.className="choices"+(opt.row?" row":"")+(opt.mono?" mono":"");
+    var sel=-1,btns=[];
+    items.forEach(function(it,i){
+      var b=document.createElement("button"); b.type="button"; b.className="choice"; b.innerHTML=it.label;
+      b.onclick=function(){ if(wrap.dataset.locked) return; sel=i; btns.forEach(function(x){x.classList.remove("sel");}); b.classList.add("sel"); };
+      btns.push(b); wrap.appendChild(b);
+    });
+    host.appendChild(wrap);
+    return { getSel:function(){return sel;},
+      isCorrect:function(){return sel<0?null:!!items[sel].correct;},
+      reveal:function(){ wrap.dataset.locked="1"; btns.forEach(function(b,i){ if(items[i].correct) b.classList.add("right"); else if(i===sel) b.classList.add("wrong"); }); } };
+  }
+
+  // ---------- reusable: text input ----------
+  function buildInput(host,placeholder){
+    host.innerHTML='<input class="ti" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="'+placeholder+'">';
+    var inp=host.querySelector(".ti"); setTimeout(function(){try{inp.focus();}catch(e){}},0);
+    return {val:function(){return inp.value.trim();},lock:function(){inp.disabled=true;}};
+  }
+
+  // ---------- modes ----------
+  var MODES={
+    oct2rwx:{ic:"🔢",nm:"Oktal → rwx",ds:"Baca angka: nyalakan saklar sampai cocok.",gen:function(stage){
+      var m=randMode(false); var cur;
+      stage.innerHTML='<p class="qkind">baca angka</p><p class="qprompt">Susun saklar agar sama dengan mode ini:</p><div class="big-oct">'+octStr(m)+'</div><div id="sw"></div>';
+      cur=buildSwitches(stage.querySelector("#sw"),false);
+      return {grade:function(){var g=cur.read(); var ok=octStr(g)===octStr(m);
+        return {ok:ok,explain:"<code>"+octStr(m)+"</code> = <code>"+symbolic(m,false)+"</code>. owner "+phrase(m.owner)+" · group "+phrase(m.group)+" · other "+phrase(m.other)+"."};},
+        reveal:function(){cur.lock();}};
+    }},
+
+    rakit:{ic:"🧩",nm:"Rakit mode",ds:"Dari kalimat, susun angkanya (kadang + bit spesial).",gen:function(stage){
+      var sp=Math.random()<0.3; var m=randMode(false); if(sp)m.special=pick([2,4]);
+      var extra = sp? (m.special===4?" <b>plus setuid</b>":" <b>plus setgid</b>") : "";
+      stage.innerHTML='<p class="qkind">tulis angka</p><p class="qprompt">owner: <b>'+phrase(m.owner)+'</b> · group: <b>'+phrase(m.group)+'</b> · other: <b>'+phrase(m.other)+'</b>'+extra+'</p><div id="sw"></div>';
+      var cur=buildSwitches(stage.querySelector("#sw"),sp);
+      return {grade:function(){var g=cur.read(); var ok=octStr(g)===octStr(m);
+        return {ok:ok,explain:"Jawaban: <code>"+octStr(m)+"</code> = <code>"+symbolic(m,false)+"</code>."+(sp?" Digit depan "+m.special+" = "+(m.special===4?"setuid":"setgid")+".":"")};},
+        reveal:function(){cur.lock();}};
+    }},
+
+    readls:{ic:"📄",nm:"Baca ls -l",ds:"Satu baris ls -l, jawab pertanyaannya.",gen:function(stage){
+      var isDir=Math.random()<0.4; var sp=Math.random()<0.35; var m=randMode(false); if(sp)m.special=pick([2,4,1]);
+      var owner=pick(USERS), group=pick(GROUPS); var name=isDir?pick(DIRS)+"/":pick(FILES);
+      var sym=symbolic(m,isDir);
+      var line=sym+" 1 "+owner+" "+group+"  "+(100+ri(9000))+" Okt 12 "+name;
+      stage.innerHTML='<p class="qkind">baca ls -l</p><div class="lsline">'+line+'</div><div id="q"></div>';
+      var qhost=stage.querySelector("#q");
+      var kinds=["oktal","jenis","otherwrite"]; if(sp)kinds.push("special");
+      var kind=pick(kinds); var cur;
+      if(kind==="oktal"){
+        qhost.insertAdjacentHTML("beforebegin",'<p class="qprompt">Berapa <b>oktal</b> mode ini?</p>');
+        cur=buildSwitches(qhost,sp);
+        return {grade:function(){var g=cur.read();var ok=octStr(g)===octStr(m);
+          return {ok:ok,explain:"Mode = <code>"+octStr(m)+"</code>. Baca tiap triplet: owner "+rwx(m.owner)+", group "+rwx(m.group)+", other "+rwx(m.other)+(sp?", bit spesial "+m.special:"")+"."};},
+          reveal:function(){cur.lock();}};
+      } else if(kind==="jenis"){
+        qhost.insertAdjacentHTML("beforebegin",'<p class="qprompt">Apa <b>jenis</b> objek ini?</p>');
+        var c=buildChoices(qhost,shuffle([{label:"File biasa",correct:!isDir},{label:"Direktori",correct:isDir},{label:"Symlink",correct:false}]));
+        return {grade:function(){var r=c.isCorrect();if(r===null)return null;
+          return {ok:r,explain:"Karakter pertama <code>"+sym[0]+"</code> = "+(isDir?"<b>d</b> (direktori)":"<b>-</b> (file biasa)")+". <code>l</code> untuk symlink, <code>d</code> direktori, <code>-</code> file."};},
+          reveal:function(){c.reveal();}};
+      } else if(kind==="otherwrite"){
+        qhost.insertAdjacentHTML("beforebegin",'<p class="qprompt">Apakah <b>other</b> (dunia luar) boleh <b>menulis</b> ini?</p>');
+        var yes=!!(m.other&2);
+        var c2=buildChoices(qhost,[{label:"Ya",correct:yes},{label:"Tidak",correct:!yes}],{row:true});
+        return {grade:function(){var r=c2.isCorrect();if(r===null)return null;
+          return {ok:r,explain:"Triplet other = <code>"+rwx(m.other)+"</code>. Bit <code>w</code> "+(yes?"menyala → boleh tulis":"mati → tak boleh tulis")+"."};},
+          reveal:function(){c2.reveal();}};
+      } else {
+        var which=m.special===4?"setuid":m.special===2?"setgid":"sticky";
+        var letter=m.special===4?"s (di posisi x owner)":m.special===2?"s (di posisi x group)":"t (di posisi x other)";
+        qhost.insertAdjacentHTML("beforebegin",'<p class="qprompt">Bit spesial apa yang menyala di sini?</p>');
+        var c3=buildChoices(qhost,shuffle([
+          {label:"setuid (s di owner)",correct:which==="setuid"},
+          {label:"setgid (s di group)",correct:which==="setgid"},
+          {label:"sticky (t di other)",correct:which==="sticky"},
+          {label:"Tidak ada",correct:false}]));
+        return {grade:function(){var r=c3.isCorrect();if(r===null)return null;
+          return {ok:r,explain:"Ada huruf <code>"+letter+"</code> di <code>"+sym+"</code> → <b>"+which+"</b>."};},
+          reveal:function(){c3.reveal();}};
+      }
+    }},
+
+    access:{ic:"🔑",nm:"Bisa akses?",ds:"User + group vs file. Boleh atau tidak?",gen:function(stage){
+      var owner=pick(USERS); var group=pick(GROUPS.filter(function(g){return g!==owner;}));
+      var m={special:0,owner:ri(8),group:ri(8),other:ri(8)};
+      var scenario=pick(["owner","groupmember","stranger","ownerandgroup"]);
+      var user,ugroups,cls;
+      if(scenario==="owner"){user=owner;ugroups=shuffle(GROUPS.filter(function(g){return g!==group;})).slice(0,ri(2)+1);cls="owner";}
+      else if(scenario==="ownerandgroup"){user=owner;ugroups=[group].concat(shuffle(GROUPS.filter(function(g){return g!==group;})).slice(0,1));cls="owner";}
+      else if(scenario==="groupmember"){user=pick(USERS.filter(function(u){return u!==owner;}));ugroups=[group].concat(shuffle(GROUPS.filter(function(g){return g!==group;})).slice(0,ri(2)));cls="group";}
+      else {user=pick(USERS.filter(function(u){return u!==owner;}));ugroups=shuffle(GROUPS.filter(function(g){return g!==group;})).slice(0,ri(2)+1);cls="other";}
+      var bits=cls==="owner"?m.owner:cls==="group"?m.group:m.other;
+      var action=pick([["membaca",4],["menulis",2],["menjalankan",1]]);
+      var allowed=!!(bits&action[1]);
+      stage.innerHTML='<p class="qkind">cek akses</p>'+
+        '<p class="qprompt">File <code>'+symbolic(m,false)+'</code> (<code>'+octStr(m)+'</code>) · owner <b>'+owner+'</b> · group <b>'+group+'</b>.<br>'+
+        'User <b>'+user+'</b> (anggota group: '+ugroups.join(", ")+').<br>Boleh <b>'+action[0]+'</b>?</p><div id="q"></div>';
+      var c=buildChoices(stage.querySelector("#q"),[{label:"Ya",correct:allowed},{label:"Tidak",correct:!allowed}],{row:true});
+      var gotcha = cls==="owner" && (m.group>m.owner);
+      return {grade:function(){var s=c.getSel();if(s<0)return null;var ok=(s===0)===allowed;
+        var why = cls==="owner"?(user+" adalah owner"):cls==="group"?(user+" bukan owner, tapi anggota group "+group):(user+" bukan owner maupun anggota group "+group);
+        var ex = why+" → kelas <b>"+cls+"</b> dipakai (aturan: kelas pertama yang cocok). Bit kelas itu <code>"+rwx(bits)+"</code> → "+action[0]+" "+(allowed?"boleh":"tidak")+"."+(gotcha?" <b>Jebakan:</b> group lebih longgar, tapi karena ia owner, bit group diabaikan.":"");
+        return {ok:ok,explain:ex};},reveal:function(){c.reveal();}};
+    }},
+
+    leak:{ic:"🕳️",nm:"Cari celah",ds:"Empat baris, mana yang berbahaya?",gen:function(stage){
+      var risky=pick([
+        {sym:"-rw-rw-rw-",o:"tools",g:"tools",n:"config.php",why:"world-writable (<code>-rw-rw-rw-</code>): siapa pun boleh mengubah isinya."},
+        {sym:"-rwsr-xr-x",o:"root",g:"root",n:"/home/tools/run.sh",why:"setuid-root (<code>rws</code>) pada skrip di home app: siapa pun yang bisa menulisnya jadi root saat dijalankan."},
+        {sym:"-rw-r--r--",o:"tools",g:"tools",n:".env",why:"secret world-readable (<code>-rw-r--r--</code>): other boleh membaca isi <code>.env</code>. Harusnya 640."},
+        {sym:"-rw-r--r--",o:"tools",g:"tools",n:"id_rsa",why:"private key world-readable: kunci SSH privat harus 600, bukan 644."}
+      ]);
+      var benignPool=[
+        {sym:"-rw-r-----",o:"tools",g:"www-data",n:".env"},
+        {sym:"drwxr-x---",o:"tools",g:"tools",n:"logs/"},
+        {sym:"-rwxr-xr-x",o:"root",g:"root",n:"/usr/bin/curl"},
+        {sym:"-rw-r--r--",o:"root",g:"root",n:"index.html"},
+        {sym:"-rw-------",o:"tools",g:"tools",n:"id_rsa"},
+        {sym:"drwxr-xr-x",o:"root",g:"root",n:"/srv/static/"}
+      ];
+      var items=shuffle([{risky:true,d:risky}].concat(shuffle(benignPool).slice(0,3).map(function(b){return {risky:false,d:b};})));
+      var fmt=function(d){return d.sym+" "+d.o+" "+d.g+"  "+d.n;};
+      stage.innerHTML='<p class="qkind">cari celah</p><p class="qprompt">Mana baris yang <b>berbahaya</b>?</p><div id="q"></div>';
+      var c=buildChoices(stage.querySelector("#q"),items.map(function(it){return {label:fmt(it.d),correct:it.risky};}),{mono:true});
+      return {grade:function(){var s=c.getSel();if(s<0)return null;var ok=items[s].risky;
+        return {ok:ok,explain:"Yang berbahaya: <code>"+fmt(risky)+"</code> — "+risky.why};},reveal:function(){c.reveal();}};
+    }},
+
+    chmodc:{ic:"⌨️",nm:"Perintah chmod",ds:"Dari kondisi awal ke tujuan, ketik perintah chmod-nya.",gen:function(stage){
+      var cur0=randMode(false),tgt=randMode(false); while(octStr(tgt)===octStr(cur0))tgt=randMode(false);
+      var isDir=Math.random()<0.3; var name=isDir?pick(DIRS):pick(FILES);
+      stage.innerHTML='<p class="qkind">perintah chmod</p>'+
+        '<p class="qprompt">Sekarang:</p><div class="lsline">'+symbolic(cur0,isDir)+'  '+name+'</div>'+
+        '<p class="qprompt">Jadikan → owner: <b>'+phrase(tgt.owner)+'</b> · group: <b>'+phrase(tgt.group)+'</b> · other: <b>'+phrase(tgt.other)+'</b></p><div id="q"></div>';
+      var inp=buildInput(stage.querySelector("#q"),"mis. chmod 640 "+name);
+      return {grade:function(){var v=inp.val(); if(!v)return null;
+        var mm=v.match(/(\d{3,4})/); var num=mm?mm[1].replace(/^0+(?=\d)/,""):null;
+        var hasChmod=/chmod/i.test(v), hasName=v.indexOf(name)>=0, numOk=num===octStr(tgt);
+        var ok=hasChmod&&numOk&&hasName;
+        var exp="Jawaban: <code>chmod "+octStr(tgt)+" "+name+"</code> → <code>"+symbolic(tgt,isDir)+"</code>.";
+        if(!hasChmod) exp="Perintahnya diawali <code>chmod</code>. "+exp;
+        else if(!numOk) exp="Angka yang benar <b>"+octStr(tgt)+"</b> (owner "+tgt.owner+", group "+tgt.group+", other "+tgt.other+"). "+exp;
+        else if(!hasName) exp="Sertakan nama berkas <code>"+name+"</code>. "+exp;
+        return {ok:ok,explain:exp};},reveal:function(){inp.lock();}};
+    }},
+
+    namei:{ic:"🧭",nm:"Telusuri namei",ds:"Di direktori mana akses user berhenti?",gen:function(stage){
+      var owner=pick(["tools","ads","anotherdev","sari"]);
+      var stranger=Math.random()<0.6;
+      var user=stranger?"www-data":pick(USERS.filter(function(u){return u!==owner&&u!=="www-data";}));
+      var ugroup=stranger?"www-data":pick(GROUPS);
+      var comps=[
+        {name:"/",o:"root",g:"root",mode:{special:0,owner:7,group:5,other:5}},
+        {name:"home",o:"root",g:"root",mode:{special:0,owner:7,group:5,other:5}},
+        {name:owner,o:owner,g:owner,mode:{special:0,owner:7,group:pick([5,0,5]),other:pick([5,0,0,1])}},
+        {name:"app",o:owner,g:pick([owner,"www-data"]),mode:{special:0,owner:7,group:pick([5,1,0]),other:pick([5,0,0])}}
+      ];
+      var file={name:".env",o:owner,g:comps[3].g,mode:{special:0,owner:6,group:4,other:0}};
+      function clsBits(c){return user===c.o?c.mode.owner:(ugroup===c.g?c.mode.group:c.mode.other);}
+      var stopIdx=-1; for(var i=0;i<comps.length;i++){ if(!(clsBits(comps[i])&1)){stopIdx=i;break;} }
+      var rows=comps.map(function(c){return symbolic(c.mode,true)+" "+pad(c.name,8)+" "+c.o+" "+c.g;}).join("\n")+
+        "\n"+symbolic(file.mode,false)+" "+pad(file.name,8)+" "+file.o+" "+file.g;
+      stage.innerHTML='<p class="qkind">telusuri namei</p>'+
+        '<p class="qprompt">User <b>'+user+'</b> (group: '+ugroup+') menuju <code>/home/'+owner+'/app/.env</code>.<br>Di komponen mana ia <b>berhenti</b>? (butuh <code>x</code> di tiap direktori untuk masuk)</p>'+
+        '<div class="lsline">'+rows+'</div><div id="q"></div>';
+      var items=comps.map(function(c,i){return {label:"Berhenti di <code>"+c.name+"</code>",correct:stopIdx===i};});
+      items.push({label:"Mencapai file (semua direktori boleh ditraverse)",correct:stopIdx===-1});
+      var c=buildChoices(stage.querySelector("#q"),items);
+      return {grade:function(){var r=c.isCorrect();if(r===null)return null;var exp;
+        if(stopIdx===-1) exp="Tiap direktori memberi <code>x</code> bagi "+user+", jadi ia sampai ke file.";
+        else { var sc=comps[stopIdx]; var cn=user===sc.o?"owner":ugroup===sc.g?"group":"other";
+          exp="Di <code>"+sc.name+"</code> (<code>"+symbolic(sc.mode,true)+"</code>), kelas <b>"+cn+"</b> bagi "+user+" tak punya <code>x</code> → tak bisa masuk, perjalanan berhenti di sini. Komponen setelahnya tak terjangkau apa pun izinnya.";}
+        return {ok:r,explain:exp};},reveal:function(){c.reveal();}};
+    }},
+
+    mix:{ic:"🎲",nm:"Campur",ds:"Acak dari semua mode. Kejar streak!",full:true,gen:function(stage){
+      var keys=["oct2rwx","rakit","readls","access","leak","chmodc","namei"];
+      return MODES[pick(keys)].gen(stage);
+    }}
+  };
+
+  // ---------- controller ----------
+  var home=document.getElementById("home"),game=document.getElementById("game"),stage=document.getElementById("stage");
+  var checkBtn=document.getElementById("checkBtn"),nextBtn=document.getElementById("nextBtn"),skipBtn=document.getElementById("skipBtn");
+  var feedback=document.getElementById("feedback"),verdict=document.getElementById("verdict"),exp=document.getElementById("exp");
+  var menuBtn=document.getElementById("menuBtn"),barTitle=document.getElementById("barTitle");
+  var elStreak=document.getElementById("streak"),elBest=document.getElementById("best"),elCorrect=document.getElementById("correct"),elTotal=document.getElementById("total");
+  var streak=0,best=+(lsGet("pt-best")||0),correct=0,total=0,curKey=null,current=null,answered=false;
+  elBest.textContent=best;
+  var timerChip=document.getElementById("timerChip"),stopDrillBtn=document.getElementById("stopDrillBtn");
+  var target=720,drillActive=false,drillTimer=null,sessionStart=0,baseSecs=0,toastEl=null;
+  var WLAB=["Sn","Sl","Rb","Km","Jm","Sb","Mg"];
+
+  function renderMenu(){
+    var menu=document.getElementById("menu"); menu.innerHTML="";
+    Object.keys(MODES).forEach(function(k){
+      var m=MODES[k]; var b=document.createElement("button"); b.type="button"; b.className="modecard"+(m.full?" full":"");
+      b.innerHTML='<div class="mc-ic">'+m.ic+'</div><div class="mc-nm">'+m.nm+'</div><div class="mc-ds">'+m.ds+'</div>';
+      b.onclick=function(){start(k);}; menu.appendChild(b);
+    });
+  }
+  function start(k){ curKey=k; home.hidden=true; game.hidden=false; menuBtn.hidden=false; barTitle.textContent=MODES[k].nm.toLowerCase(); ask(); }
+  function toMenu(){ if(drillActive) stopDrill(); game.hidden=true; home.hidden=false; menuBtn.hidden=true; barTitle.textContent="perm trainer"; renderDaily(); }
+  function ask(){
+    answered=false; feedback.hidden=true; feedback.className="feedback";
+    checkBtn.hidden=false; nextBtn.hidden=true;
+    current=MODES[curKey].gen(stage);
+  }
+  function setScore(ok){
+    total++; if(ok){correct++;streak++; if(streak>best){best=streak;lsSet("pt-best",best);elBest.textContent=best;}} else {streak=0;}
+    elStreak.textContent=streak; elCorrect.textContent=correct; elTotal.textContent=total;
+    var log=loadLog(),k=ymd2(new Date()); if(!log[k])log[k]={secs:0,answered:0,done:false};
+    log[k].answered=(log[k].answered||0)+1; saveLog(log);
+  }
+
+  // ---------- daily drill ----------
+  function ymd2(d){var z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,10);}
+  function todayStr(){return ymd2(new Date());}
+  function loadLog(){try{return JSON.parse(lsGet("pt-drill")||"{}");}catch(e){return {};}}
+  function saveLog(l){lsSet("pt-drill",JSON.stringify(l));}
+  function weekDays(){var now=new Date();var off=(now.getDay()+6)%7;var mon=new Date(now);mon.setDate(now.getDate()-off);
+    var a=[];for(var i=0;i<7;i++){var d=new Date(mon);d.setDate(mon.getDate()+i);a.push(d);}return a;}
+  function mmss(s){var m=Math.floor(s/60),ss=s%60;return m+":"+(ss<10?"0":"")+ss;}
+  function toast(m){ if(!toastEl)toastEl=document.getElementById("toast"); toastEl.textContent=m; toastEl.classList.add("show");
+    clearTimeout(toastEl._t); toastEl._t=setTimeout(function(){toastEl.classList.remove("show");},2600); }
+  function renderDaily(){
+    var log=loadLog(),days=weekDays(),t=todayStr();
+    document.getElementById("weekdots").innerHTML=days.map(function(d){var k=ymd2(d),done=log[k]&&log[k].done,isT=k===t;
+      return '<div class="wd'+(done?" done":"")+(isT?" today":"")+'"><span>'+WLAB[(d.getDay()+6)%7]+'</span></div>';}).join("");
+    var td=log[t]||{secs:0,done:false};
+    document.getElementById("todayStatus").innerHTML= td.done
+      ? 'Hari ini: <b style="color:var(--safe)">selesai ✓</b> ('+Math.round((td.secs||0)/60)+' mnt)'
+      : 'Hari ini: <b>belum</b>';
+    var s=0,start=(log[t]&&log[t].done)?0:1;
+    for(var i=start;;i++){var d=new Date();d.setDate(d.getDate()-i);var k=ymd2(d);if(log[k]&&log[k].done)s++;else break;}
+    document.getElementById("streakNote").innerHTML="Streak harian: <b>"+s+"</b> hari. "+(s>=5?"Mantap — lewati saja kalau sudah menempel.":"Target pekan ini: 7 hari berturut.");
+  }
+  function startDrill(){
+    target=(+document.getElementById("dur").value)*60;
+    var log=loadLog(); baseSecs=(log[todayStr()]&&log[todayStr()].secs)||0;
+    sessionStart=Date.now(); drillActive=true;
+    timerChip.hidden=false; stopDrillBtn.hidden=false;
+    curKey="mix"; home.hidden=true; game.hidden=false; menuBtn.hidden=false; barTitle.textContent="drill harian"; ask();
+    drillTimer=setInterval(tick,1000); tick();
+  }
+  function tick(){
+    var elapsed=Math.floor((Date.now()-sessionStart)/1000); var remaining=target-elapsed; if(remaining<0)remaining=0;
+    document.getElementById("timeLeft").textContent=mmss(remaining);
+    var log=loadLog(),k=todayStr(); if(!log[k])log[k]={secs:0,answered:0,done:false};
+    log[k].secs=baseSecs+elapsed;
+    if(!log[k].done && log[k].secs>=600){ log[k].done=true; toast("Target hari ini tercapai ✓"); }
+    saveLog(log);
+    if(remaining<=0) finishDrill();
+  }
+  function finishDrill(){
+    clearInterval(drillTimer); drillActive=false;
+    var log=loadLog(),k=todayStr(); if(!log[k])log[k]={secs:0,answered:0,done:false}; log[k].done=true; saveLog(log);
+    timerChip.hidden=true; stopDrillBtn.hidden=true;
+    toast("Selesai! Drill "+Math.round(target/60)+" menit hari ini ✓");
+    renderDaily(); toMenu();
+  }
+  function stopDrill(){
+    if(!drillActive) return; clearInterval(drillTimer); drillActive=false;
+    var elapsed=Math.floor((Date.now()-sessionStart)/1000),log=loadLog(),k=todayStr();
+    if(!log[k])log[k]={secs:0,answered:0,done:false}; log[k].secs=baseSecs+elapsed;
+    if(log[k].secs>=600)log[k].done=true; saveLog(log);
+    timerChip.hidden=true; stopDrillBtn.hidden=true;
+  }
+  function doCheck(){
+    if(answered||!current) return;
+    var r=current.grade(); if(r===null){ exp.textContent=""; return; }
+    answered=true; if(current.reveal) current.reveal();
+    feedback.hidden=false; feedback.className="feedback "+(r.ok?"ok":"bad");
+    verdict.textContent=r.ok?"✓ Benar":"✗ Belum tepat"; exp.innerHTML=r.explain||"";
+    checkBtn.hidden=true; nextBtn.hidden=false; nextBtn.focus(); setScore(r.ok);
+  }
+  checkBtn.onclick=doCheck; nextBtn.onclick=ask;
+  skipBtn.onclick=function(){ streak=0; elStreak.textContent=0; ask(); };
+  menuBtn.onclick=toMenu;
+  document.getElementById("startDrill").onclick=startDrill;
+  stopDrillBtn.onclick=function(){ stopDrill(); toMenu(); };
+  document.addEventListener("keydown",function(e){
+    if(e.key!=="Enter") return; if(game.hidden) return; e.preventDefault();
+    if(answered) ask(); else doCheck();
+  });
+
+  renderMenu();
+  renderDaily();
+})();
+</script>

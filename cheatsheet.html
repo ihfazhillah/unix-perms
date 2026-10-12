@@ -1,0 +1,219 @@
+<title>Izin File Unix</title>
+<meta name="description" content="Cheat sheet izin file Unix untuk dicetak dan ditempel: oktal, rwx, bit spesial, file vs direktori, cara mengecek.">
+<style>
+  :root {
+    --bg: #0e1116; --surface: #161b22; --surface-2: #1c232d; --fg: #e7ebf0;
+    --muted: #97a2b0; --border: #28313d; --accent: #4fb286; --phase: #d7a53b; --danger: #e5675c;
+    --code-bg: #0a0e13; --code-fg: #d6deeb;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f5f1e8; --surface: #fffdf8; --surface-2: #efe9db; --fg: #1d232b;
+      --muted: #5c6472; --border: #d8cfbd; --accent: #1d8a5f; --phase: #a9741a; --danger: #bf3b31;
+      --code-bg: #171c24; --code-fg: #d6deeb; color-scheme: light;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e1116; --surface: #161b22; --surface-2: #1c232d; --fg: #e7ebf0;
+    --muted: #97a2b0; --border: #28313d; --accent: #4fb286; --phase: #d7a53b; --danger: #e5675c;
+    --code-bg: #0a0e13; --code-fg: #d6deeb; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--fg); font-family: var(--sans); line-height: 1.5; margin: 0; }
+  .sheet { max-width: 900px; margin: 0 auto; padding: 22px 20px 70px; }
+  h1 { font-family: var(--mono); font-size: 1.7rem; margin: 0; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 0.2rem 0 1.2rem; font-size: 0.95rem; }
+  h2 { font-family: var(--mono); font-size: 1.02rem; margin: 0 0 0.5rem; color: var(--accent); letter-spacing: 0.01em; }
+  code { font-family: var(--mono); background: var(--surface-2); padding: 0.05em 0.3em; border-radius: 4px; font-size: 0.9em; }
+  p { margin: 0.4rem 0; }
+
+  .topbar { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  .btns { display: flex; gap: 0.5rem; }
+  button { font-family: var(--mono); font-size: 0.78rem; background: var(--accent); color: #06130d; border: 0;
+    border-radius: 20px; padding: 0.45rem 1rem; cursor: pointer; font-weight: 600; }
+  button.ghost { background: var(--surface); color: var(--fg); border: 1px solid var(--border); font-weight: 400; }
+  a.nav { font-family: var(--mono); font-size: 0.78rem; background: var(--surface); color: var(--fg); text-decoration: none;
+    border: 1px solid var(--border); border-radius: 20px; padding: 0.45rem 1rem; display: inline-flex; align-items: center; }
+  a.nav:hover { border-color: var(--accent); color: var(--accent); }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 10px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 15px; break-inside: avoid; }
+  .card.wide { grid-column: 1 / -1; }
+
+  /* big anatomy strip */
+  .anat { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; margin: 6px 0; }
+  .slot { flex: 1 1 120px; text-align: center; border: 1px solid var(--border); border-radius: 10px; padding: 8px 6px; background: var(--code-bg); }
+  .slot.sp { border-color: var(--phase); }
+  .slot .lab { font-family: var(--mono); font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
+  .slot .big { font-family: var(--mono); font-size: 2.1rem; font-weight: 600; color: var(--accent); line-height: 1.1; }
+  .slot.sp .big { color: var(--phase); }
+  .slot .sym { font-family: var(--mono); font-size: 0.95rem; color: var(--code-fg); letter-spacing: 0.12em; }
+
+  .weights { display: flex; gap: 8px; justify-content: center; margin: 8px 0 2px; }
+  .chip { font-family: var(--mono); font-size: 1rem; border: 1px solid var(--accent); color: var(--accent);
+    border-radius: 8px; padding: 0.35rem 0.6rem; text-align: center; min-width: 3.2rem; }
+  .chip small { display: block; font-size: 0.6rem; color: var(--muted); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.86rem; margin: 4px 0; }
+  th, td { text-align: left; padding: 0.34rem 0.45rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+  td.m, table.modes td:first-child { font-family: var(--mono); color: var(--accent); white-space: nowrap; }
+  table.modes td:nth-child(2) { font-family: var(--mono); color: var(--code-fg); white-space: nowrap; }
+
+  .cmd { font-family: var(--mono); font-size: 0.82rem; background: var(--code-bg); color: var(--code-fg);
+    border: 1px solid var(--border); border-radius: 7px; padding: 0.4rem 0.6rem; margin: 5px 0; overflow-x: auto; white-space: pre; }
+  .cmd .c { color: var(--muted); }
+  .lsmap { font-family: var(--mono); font-size: 0.95rem; line-height: 1.7; white-space: pre; overflow-x: auto; }
+  .lsmap .t { color: var(--danger); } .lsmap .o { color: var(--accent); } .lsmap .g { color: var(--phase); } .lsmap .a { color: var(--muted); }
+  .foot { color: var(--muted); font-size: 0.78rem; margin-top: 14px; text-align: center; }
+
+  @media (max-width: 680px) { .grid { grid-template-columns: 1fr; } }
+
+  /* PRINT: force clean light, fit A4, drop chrome */
+  @page { size: A4; margin: 12mm; }
+  @media print {
+    :root { --bg:#fff; --surface:#fff; --surface-2:#f0ede6; --fg:#111; --muted:#555; --border:#bbb;
+      --accent:#15663f; --phase:#8a5e12; --danger:#a32a21; --code-bg:#f6f4ee; --code-fg:#111; }
+    body { background: #fff; }
+    .sheet { max-width: none; padding: 0; }
+    .btns, .nohint { display: none; }
+    .card { box-shadow: none; }
+    h1 { font-size: 1.5rem; } h2 { font-size: 0.95rem; }
+    .grid { gap: 9px; }
+  }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<div class="sheet">
+  <div class="topbar">
+    <div>
+      <h1>Izin File Unix</h1>
+      <p class="sub">Cheat sheet untuk ditempel · baca tiap angka, jangan hafal</p>
+    </div>
+    <div class="btns">
+      <a class="btn ghost nav" href="./index.html">beranda</a>
+      <a class="btn ghost nav" href="./game.html">game</a>
+      <button id="printBtn" type="button">⎙ Cetak / Simpan PDF</button>
+      <button id="themeBtn" class="ghost" type="button">◐ tema</button>
+    </div>
+  </div>
+  <p class="sub nohint">Untuk mencetak: tekan tombol di atas, atau <code>Ctrl/Cmd+P</code>. Pilih "Save as PDF" untuk menyimpannya.</p>
+
+  <div class="card wide">
+    <h2>Anatomi: empat slot</h2>
+    <div class="anat">
+      <div class="slot sp"><div class="lab">spesial</div><div class="big">2</div><div class="sym">setgid</div></div>
+      <div class="slot"><div class="lab">owner</div><div class="big">7</div><div class="sym">rwx</div></div>
+      <div class="slot"><div class="lab">group</div><div class="big">5</div><div class="sym">r-x</div></div>
+      <div class="slot"><div class="lab">other</div><div class="big">0</div><div class="sym">---</div></div>
+    </div>
+    <p class="sub" style="margin:4px 0 0">Contoh <code>2750</code>. Digit paling kiri = bit spesial (boleh kosong). Tiga sisanya menjawab: apa yang boleh <b>owner</b>, anggota <b>group</b>, dan <b>other</b> (semua orang lain).</p>
+  </div>
+
+  <div class="grid">
+
+    <div class="card">
+      <h2>Satu digit = r·w·x dijumlahkan</h2>
+      <div class="weights">
+        <div class="chip">4<small>read</small></div>
+        <div class="chip">2<small>write</small></div>
+        <div class="chip">1<small>exec</small></div>
+      </div>
+      <table>
+        <tr><td class="m">7</td><td><code>rwx</code></td><td>baca + tulis + jalankan</td></tr>
+        <tr><td class="m">6</td><td><code>rw-</code></td><td>baca + tulis</td></tr>
+        <tr><td class="m">5</td><td><code>r-x</code></td><td>baca + jalankan</td></tr>
+        <tr><td class="m">4</td><td><code>r--</code></td><td>baca saja</td></tr>
+        <tr><td class="m">0</td><td><code>---</code></td><td>tidak ada</td></tr>
+      </table>
+      <p class="sub" style="margin:2px 0 0">Jumlahkan saklar yang menyala → satu angka 0–7. Tiap angka = tepat satu pola.</p>
+    </div>
+
+    <div class="card">
+      <h2>r·w·x: file vs direktori</h2>
+      <table>
+        <tr><th>saklar</th><th>file</th><th>direktori</th></tr>
+        <tr><td class="m">r</td><td>baca isi</td><td>lihat daftar nama (<code>ls</code>)</td></tr>
+        <tr><td class="m">w</td><td>ubah isi</td><td>tambah/hapus/rename entri<br><span class="sub">(butuh <code>x</code> juga)</span></td></tr>
+        <tr><td class="m">x</td><td>jalankan<br>sebagai program</td><td><b>masuk</b>/traverse (akses file<br>lewat nama yang diketahui)</td></tr>
+      </table>
+      <p class="sub" style="margin:2px 0 0"><code>--x</code>: capai file jika tahu namanya, tak bisa <code>ls</code>. <code>r--</code>: lihat daftar tapi tak bisa masuk/buka.</p>
+    </div>
+
+    <div class="card wide">
+      <h2>Digit keempat: bit spesial</h2>
+      <table>
+        <tr><th>bit</th><th>nilai</th><th>huruf di ls</th><th>pada file</th><th>pada direktori</th></tr>
+        <tr><td class="m">setuid</td><td class="m">4</td><td class="m">s <span class="sub">(x owner)</span></td><td>jalan sebagai <b>owner</b> file (<code>passwd</code>→root)</td><td>diabaikan</td></tr>
+        <tr><td class="m">setgid</td><td class="m">2</td><td class="m">s <span class="sub">(x group)</span></td><td>jalan sebagai <b>group</b> file</td><td>file baru <b>warisi group</b> direktori</td></tr>
+        <tr><td class="m">sticky</td><td class="m">1</td><td class="m">t <span class="sub">(x other)</span></td><td>diabaikan</td><td>hanya <b>pemilik file</b> boleh hapus (<code>/tmp</code>)</td></tr>
+      </table>
+      <p class="sub" style="margin:2px 0 0">Huruf <b>besar</b> <code>S</code>/<code>T</code> = bit nyala tapi <code>x</code> mati (sering salah konfigurasi). <b>setuid-root pada file writable = jalan ke root.</b></p>
+    </div>
+
+    <div class="card">
+      <h2>Membaca <code>ls -l</code></h2>
+      <div class="lsmap"><span class="a">d</span> <span class="o">rwx</span> <span class="g">r-x</span> <span class="t">r--</span>
+<span class="a">^</span> <span class="o">^^^</span> <span class="g">^^^</span> <span class="t">^^^</span>
+<span class="a">│</span>  <span class="o">│</span>   <span class="g">│</span>   <span class="t">other</span>
+<span class="a">│</span>  <span class="o">│</span>   <span class="g">group</span>
+<span class="a">│</span>  <span class="o">owner</span>
+<span class="a">tipe: - file · d dir · l link</span></div>
+      <p class="sub" style="margin:4px 0 0">Bit spesial menggeser huruf <code>x</code>: <code>s</code> owner/group, <code>t</code> other.</p>
+    </div>
+
+    <div class="card">
+      <h2>Mode yang sering dipakai</h2>
+      <table class="modes">
+        <tr><td>600</td><td>rw-------</td><td>privat (kunci SSH)</td></tr>
+        <tr><td>640</td><td>rw-r-----</td><td>secret, group boleh baca (<code>.env</code>)</td></tr>
+        <tr><td>644</td><td>rw-r--r--</td><td>file publik-baca (default)</td></tr>
+        <tr><td>700</td><td>rwx------</td><td>dir/skrip privat</td></tr>
+        <tr><td>750</td><td>rwxr-x---</td><td>dir: owner penuh, group masuk</td></tr>
+        <tr><td>755</td><td>rwxr-xr-x</td><td>dir/exec publik masuk+baca</td></tr>
+        <tr><td>775</td><td>rwxrwxr-x</td><td>group bisa tulis <span class="sub">(berisiko)</span></td></tr>
+        <tr><td>2750</td><td>rwxr-s---</td><td>dir setgid: anak warisi group</td></tr>
+        <tr><td>1777</td><td>rwxrwxrwt</td><td>dir sticky world-write (<code>/tmp</code>)</td></tr>
+        <tr><td>4755</td><td>rwsr-xr-x</td><td>exec setuid: jalan sbg owner</td></tr>
+      </table>
+    </div>
+
+    <div class="card wide">
+      <h2>Cara mengecek</h2>
+      <div class="cmd">stat -c '%a %A %U %G %n' PATH        <span class="c"># oktal + simbolik + owner + group</span></div>
+      <div class="cmd">namei -l /a/b/c.env                 <span class="c"># izin TIAP komponen path — temukan tembok traverse</span></div>
+      <div class="cmd">id USER ; groups USER               <span class="c"># user anggota group apa (penentu akses "group")</span></div>
+      <div class="cmd">sudo -u www-data cat PATH           <span class="c"># bukti akses nyata, bukan terkaan</span></div>
+      <div class="cmd">sudo find / -perm -4000 -type f 2&gt;/dev/null   <span class="c"># semua setuid (-2000 setgid, -1000 sticky)</span></div>
+      <div class="cmd">find DIR -perm -0002 -type f        <span class="c"># file world-writable</span></div>
+      <div class="cmd">grep -R -n ' root ' /etc/cron.d/     <span class="c"># cron yang jalan sebagai root</span></div>
+    </div>
+
+  </div>
+
+  <p class="foot">Least privilege: matikan tiap saklar yang tidak <b>wajib</b> menyala. Satu bit keliru menyala = satu celah.</p>
+</div>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    function g(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+    function s(k,v){ try { localStorage.setItem(k,v); } catch(e){} }
+    if (g("perm-theme")) root.setAttribute("data-theme", g("perm-theme"));
+    document.getElementById("themeBtn").addEventListener("click", function () {
+      var cur = root.getAttribute("data-theme");
+      var dark = cur ? cur === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+      var next = dark ? "light" : "dark";
+      root.setAttribute("data-theme", next); s("perm-theme", next);
+    });
+    document.getElementById("printBtn").addEventListener("click", function () {
+      try { window.print(); } catch (e) {}
+      var h = document.querySelector(".nohint"); if (h) h.style.color = "var(--danger)";
+    });
+  })();
+</script>
